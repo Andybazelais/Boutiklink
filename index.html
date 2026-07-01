@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoutikLink — Votre boutique, en un seul lien</title>
+<meta name="description" content="Créez votre boutique digitale en 5 minutes et recevez vos commandes sur WhatsApp.">
+
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===== TOKENS ===== */
+:root{
+  --M:#E8632C; --MD:#B8481E; --G:#1A8754; --S:#FFC94D;
+  --I:#1F2430; --IS:#6B7280; --C:#FFF9F4; --CD:#FFF1E4;
+  --W:#FFFFFF; --L:#ECE4D8; --R:16px; --DG:#D64545;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Inter',sans-serif;background:var(--C);color:var(--I);-webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;}
+a{text-decoration:none;color:inherit;}
+img{max-width:100%;display:block;}
+input,textarea,select{font-family:'Inter',sans-serif;outline:none;}
+button{font-family:'Inter',sans-serif;cursor:pointer;}
+
+/* ===== LAYOUT ===== */
+#app{min-height:100vh;}
+.page{display:none;min-height:100vh;}
+.page.active{display:block;}
+.wrap{max-width:1140px;margin:0 auto;padding:0 16px;}
+.wrap-sm{max-width:680px;margin:0 auto;padding:0 16px;}
+.wrap-xs{max-width:440px;margin:0 auto;padding:0 16px;}
+
+/* ===== CANOPY STRIPE ===== */
+.canopy{height:8px;background:repeating-linear-gradient(-45deg,var(--M) 0 16px,var(--S) 16px 32px,var(--G) 32px 48px);background-size:200% 100%;animation:stripe 18s linear infinite;}
+@keyframes stripe{from{background-position:0 0;}to{background-position:200% 0;}}
+@media(prefers-reduced-motion:reduce){.canopy{animation:none;}}
+
+/* ===== HEADER ===== */
+.header{position:sticky;top:0;z-index:40;background:rgba(255,249,244,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--L);}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;max-width:1140px;margin:0 auto;gap:10px;}
+.logo{display:flex;align-items:center;gap:7px;font-family:'Fraunces',serif;font-weight:700;font-size:19px;color:var(--I);}
+.logo-dot{width:9px;height:9px;background:var(--M);border-radius:2px;transform:rotate(45deg);}
+.nav-r{display:flex;align-items:center;gap:8px;}
+
+/* ===== BUTTONS ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;border:none;transition:transform .13s,box-shadow .13s;cursor:pointer;}
+.btn:active{transform:scale(.97);}
+.btn-p{background:linear-gradient(135deg,var(--M),var(--S));color:#fff;box-shadow:0 6px 18px -5px rgba(232,99,44,.5);}
+.btn-p:hover{box-shadow:0 8px 22px -4px rgba(232,99,44,.6);}
+.btn-o{background:transparent;border:1.5px solid var(--I);color:var(--I);}
+.btn-g{background:var(--G);color:#fff;box-shadow:0 6px 16px -5px rgba(26,135,84,.45);}
+.btn-sm{padding:8px 16px;font-size:13px;}
+.btn-ghost{background:transparent;border:1.5px solid var(--L);color:var(--IS);padding:9px 15px;font-size:13px;}
+.btn-full{width:100%;}
+.btn-danger{background:var(--DG);color:#fff;}
+
+/* ===== FORM FIELDS ===== */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--IS);margin-bottom:6px;}
+.field input,.field textarea,.field select{width:100%;padding:11px 14px;border:1.5px solid var(--L);border-radius:12px;font-size:14px;background:#fff;color:var(--I);}
+.field input:focus,.field textarea:focus{border-color:var(--M);}
+.field textarea{resize:vertical;min-height:80px;}
+.error-msg{color:var(--DG);font-size:13px;margin-top:5px;display:none;}
+
+/* ===== CARDS ===== */
+.card{background:var(--W);border:1px solid var(--L);border-radius:var(--R);padding:20px;}
+.panel{background:var(--W);border:1px solid var(--L);border-radius:var(--R);padding:20px;margin-bottom:16px;}
+.panel h3{font-size:15.5px;margin-bottom:14px;}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--I);color:#fff;padding:11px 22px;border-radius:999px;font-size:13.5px;font-weight:600;z-index:999;display:none;box-shadow:0 10px 24px -6px rgba(0,0,0,.3);white-space:nowrap;}
+.toast.show{display:block;animation:toastIn .2s ease;}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+
+/* ===== OVERLAY / MODAL ===== */
+.overlay{position:fixed;inset:0;background:rgba(31,36,48,.5);z-index:60;display:none;align-items:flex-end;justify-content:center;}
+.overlay.show{display:flex;}
+@media(min-width:640px){.overlay{align-items:center;}}
+.sheet{background:#fff;width:100%;max-width:480px;border-radius:22px 22px 0 0;max-height:90vh;overflow-y:auto;position:relative;animation:slideUp .22s ease;}
+@media(min-width:640px){.sheet{border-radius:22px;}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+.close-x{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;}
+
+/* ===== SPINNER ===== */
+.spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+.spinner-dark{border-color:rgba(31,36,48,.2);border-top-color:var(--I);}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ===== BADGE ===== */
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;}
+.badge-ok{background:#E6F4EC;color:var(--G);}
+.badge-low{background:#FCE9E9;color:var(--DG);}
+
+/* ===== BOTTOM NAV (dashboard) ===== */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--L);display:flex;justify-content:space-around;padding:9px 0 14px;z-index:40;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--IS);font-weight:600;cursor:pointer;padding:0 12px;}
+.bnav-item.active{color:var(--M);}
+.bnav-icon{font-size:20px;}
+
+/* ===== LANDING PAGE ===== */
+.hero{padding:44px 16px 36px;display:flex;flex-direction:column;gap:32px;}
+@media(min-width:860px){.hero{flex-direction:row;align-items:center;padding:72px 16px 64px;max-width:1140px;margin:0 auto;}}
+.hero-copy{flex:1;}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;background:var(--CD);color:var(--MD);font-size:12.5px;font-weight:700;padding:5px 14px;border-radius:999px;margin-bottom:16px;}
+.hero h1{font-size:30px;line-height:1.12;margin-bottom:14px;}
+@media(min-width:760px){.hero h1{font-size:44px;}}
+.hero h1 em{font-style:normal;color:var(--M);background:linear-gradient(180deg,transparent 64%,var(--S) 64%);}
+.hero-sub{font-size:16px;color:var(--IS);line-height:1.55;max-width:480px;margin-bottom:24px;}
+.hero-ctas{display:flex;flex-direction:column;gap:10px;max-width:320px;}
+@media(min-width:520px){.hero-ctas{flex-direction:row;max-width:none;}}
+.trust-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--IS);}
+.trust-row span{display:flex;align-items:center;gap:4px;}
+/* phone mockup */
+.phone-frame{width:240px;margin:0 auto;background:var(--I);border-radius:32px;padding:8px;box-shadow:0 28px 56px -18px rgba(31,36,48,.4);}
+@media(min-width:860px){.phone-frame{width:270px;}}
+.phone-screen{background:#EFE9DE;border-radius:25px;overflow:hidden;aspect-ratio:9/18.5;}
+.screen-bar{height:24px;background:#1B1F27;border-radius:25px 25px 0 0;display:flex;align-items:center;justify-content:center;}
+.screen-bar::after{content:'';width:44px;height:5px;background:#33394a;border-radius:4px;}
+.chat-area{padding:12px 8px;}
+.bubble{background:#fff;border-radius:12px 12px 12px 3px;padding:9px 11px;font-size:10.5px;line-height:1.4;max-width:80%;margin-bottom:7px;box-shadow:0 2px 6px rgba(0,0,0,.06);animation:fadeUp .6s ease both;}
+.bubble.me{margin-left:auto;background:#DCF8C6;border-radius:12px 12px 3px 12px;animation-delay:.15s;}
+.unfold{background:#fff;border-radius:12px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:6px;animation:fadeUp .5s ease .4s both;box-shadow:0 4px 12px rgba(0,0,0,.07);}
+.unf-item{background:var(--CD);border-radius:8px;padding:6px;text-align:center;}
+.unf-swatch{height:34px;border-radius:6px;margin-bottom:4px;}
+.unf-item span{font-size:8.5px;font-weight:700;color:var(--I);display:block;}
+.unf-item small{font-size:8px;color:var(--MD);font-weight:700;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* features */
+.feat-grid{display:grid;gap:14px;grid-template-columns:1fr;}
+@media(min-width:700px){.feat-grid{grid-template-columns:repeat(3,1fr);}}
+.feat-card{background:var(--W);border:1px solid var(--L);border-radius:var(--R);padding:22px 18px;}
+.feat-icon{width:42px;height:42px;border-radius:12px;background:var(--CD);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;}
+.feat-card h3{font-size:15.5px;margin-bottom:6px;}
+.feat-card p{font-size:13.5px;color:var(--IS);line-height:1.5;}
+/* steps */
+.steps{max-width:620px;margin:0 auto;}
+.step{display:flex;gap:16px;padding-bottom:28px;position:relative;}
+.step:last-child{padding-bottom:0;}
+.step::before{content:'';position:absolute;left:18px;top:38px;bottom:0;width:2px;background:repeating-linear-gradient(0deg,var(--IS) 0 4px,transparent 4px 9px);opacity:.2;}
+.step:last-child::before{display:none;}
+.step-num{flex:none;width:38px;height:38px;border-radius:50%;color:#fff;font-family:'Fraunces',serif;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.step:nth-child(1) .step-num{background:var(--M);}
+.step:nth-child(2) .step-num{background:var(--G);}
+.step:nth-child(3) .step-num{background:var(--MD);}
+.step-body h3{font-size:16px;margin-bottom:5px;}
+.step-body p{font-size:14px;color:var(--IS);line-height:1.5;}
+/* testimonials */
+.testi-track{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x mandatory;}
+.testi-track::-webkit-scrollbar{height:5px;}
+.testi-card{scroll-snap-align:start;flex:none;width:260px;background:var(--W);border:1px solid var(--L);border-radius:var(--R);padding:18px;}
+.stars{color:var(--S);font-size:13px;letter-spacing:2px;margin-bottom:8px;}
+.testi-card p{font-size:13.5px;line-height:1.5;font-style:italic;color:var(--I);margin-bottom:12px;}
+.testi-who{display:flex;align-items:center;gap:9px;}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--M),var(--S));}
+.testi-who strong{font-size:13px;display:block;}
+.testi-who span{font-size:11.5px;color:var(--IS);}
+/* cta section */
+.cta-block{background:linear-gradient(135deg,var(--M),var(--MD));padding:56px 16px;text-align:center;}
+.cta-block h2{font-size:26px;color:#fff;margin-bottom:10px;}
+@media(min-width:760px){.cta-block h2{font-size:34px;}}
+.cta-block p{color:rgba(255,255,255,.85);font-size:15px;margin-bottom:22px;max-width:400px;margin-left:auto;margin-right:auto;}
+.cta-block .btn-p{background:#fff;color:var(--MD);}
+/* footer */
+footer{background:var(--I);color:#cfd2da;padding:44px 0 24px;}
+.foot-grid{display:grid;gap:28px;grid-template-columns:1fr;}
+@media(min-width:700px){.foot-grid{grid-template-columns:1.3fr 1fr 1fr;}}
+.foot-logo{display:flex;align-items:center;gap:7px;color:#fff;font-family:'Fraunces',serif;font-weight:700;font-size:17px;margin-bottom:8px;}
+.foot-grid p{font-size:13px;color:#9aa0ad;line-height:1.6;}
+.foot-grid h4{color:#fff;font-size:13.5px;font-family:'Inter',sans-serif;font-weight:700;margin-bottom:12px;}
+.foot-grid a{display:block;font-size:13px;color:#9aa0ad;margin-bottom:8px;}
+.foot-grid a:hover{color:#fff;}
+.foot-bottom{border-top:1px solid rgba(255,255,255,.08);margin-top:30px;padding-top:16px;font-size:12px;color:#7d828d;text-align:center;}
+/* section labels */
+section{padding:48px 0;}
+.sec-head{text-align:center;max-width:520px;margin:0 auto 30px;}
+.sec-head h2{font-size:24px;margin-bottom:8px;}
+@media(min-width:760px){.sec-head h2{font-size:30px;}}
+.sec-head p{font-size:15px;color:var(--IS);line-height:1.5;}
+.eyebrow-sm{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--G);display:block;margin-bottom:7px;}
+.bg-cream{background:var(--CD);}
+
+/* ===== AUTH PAGE ===== */
+.auth-wrap{max-width:400px;margin:0 auto;padding:48px 16px;}
+.auth-wrap .logo{justify-content:center;margin-bottom:30px;}
+.auth-wrap h2{font-size:22px;text-align:center;margin-bottom:6px;}
+.auth-wrap .sub{font-size:14px;color:var(--IS);text-align:center;margin-bottom:28px;}
+.auth-switch{text-align:center;font-size:13.5px;color:var(--IS);margin-top:16px;}
+.auth-switch a{color:var(--M);font-weight:600;}
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--IS);font-size:12.5px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--L);}
+
+/* ===== DASHBOARD ===== */
+.dash-wrap{max-width:840px;margin:0 auto;padding:20px 16px 100px;}
+.greet h2{font-size:20px;}
+.greet p{font-size:13px;color:var(--IS);margin-top:3px;}
+.stats-row{display:flex;gap:10px;overflow-x:auto;padding:16px 0;}
+.stat-card{flex:none;width:148px;background:#fff;border:1px solid var(--L);border-radius:var(--R);padding:14px;}
+.stat-icon{font-size:18px;margin-bottom:6px;}
+.stat-val{font-size:22px;font-weight:700;font-family:'Fraunces',serif;}
+.stat-label{font-size:12px;color:var(--IS);}
+.chart{display:flex;align-items:flex-end;gap:8px;height:100px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;}
+.bar{width:100%;max-width:28px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--S),var(--M));transition:height .6s ease;}
+.bar-day{font-size:10px;color:var(--IS);font-weight:600;}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:999px;background:var(--M);color:#fff;border:none;font-weight:700;font-size:14px;box-shadow:0 8px 18px -6px rgba(232,99,44,.5);margin-bottom:14px;}
+.prow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--L);}
+.prow:last-child{border-bottom:none;}
+.prow img{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#eee;}
+.prow-info .pname{font-size:13px;font-weight:600;}
+.prow-info .pprice{font-size:12.5px;color:var(--IS);}
+.prow-actions{margin-left:auto;display:flex;gap:6px;}
+.prow-actions button{width:32px;height:32px;border-radius:8px;border:1px solid var(--L);background:#fff;font-size:14px;}
+.share-block{background:var(--CD);border-radius:var(--R);padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+@media(min-width:580px){.share-block{flex-direction:row;align-items:center;justify-content:space-between;}}
+.share-link-text{font-size:13px;font-weight:600;color:var(--MD);background:#fff;padding:8px 12px;border-radius:10px;border:1px solid var(--L);word-break:break-all;}
+.share-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.share-actions button{padding:8px 14px;border-radius:10px;border:1.5px solid var(--I);background:transparent;font-size:12.5px;font-weight:700;}
+.upload-box{border:2px dashed var(--L);border-radius:12px;padding:24px;text-align:center;color:var(--IS);font-size:13px;cursor:pointer;transition:border-color .15s;}
+.upload-box:hover{border-color:var(--M);}
+
+/* ===== SHOP PAGE ===== */
+.shop-cover{height:120px;background:linear-gradient(135deg,var(--M),var(--S));}
+.shop-header{text-align:center;padding:0 16px;position:relative;max-width:760px;margin:-44px auto 0;}
+.shop-av{width:78px;height:78px;border-radius:50%;border:4px solid var(--C);background:linear-gradient(135deg,var(--G),#8fd6ad);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:28px;color:#fff;font-weight:700;box-shadow:0 6px 16px rgba(0,0,0,.1);}
+.shop-header h1{font-size:19px;}
+.shop-header p{font-size:13px;color:var(--IS);margin-top:4px;}
+.shop-chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 6px;}
+.chip{flex:none;padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:600;background:#fff;border:1px solid var(--L);color:var(--IS);cursor:pointer;white-space:nowrap;}
+.chip.active{background:var(--I);color:#fff;border-color:var(--I);}
+.prod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:10px 16px 100px;max-width:760px;margin:0 auto;}
+@media(min-width:580px){.prod-grid{grid-template-columns:repeat(3,1fr);}}
+.pcard{background:#fff;border:1px solid var(--L);border-radius:var(--R);overflow:hidden;cursor:pointer;transition:transform .13s;}
+.pcard:active{transform:scale(.98);}
+.pcard-img{aspect-ratio:1/1;background-size:cover;background-position:center;background-color:#eee;position:relative;}
+.quick-plus{position:absolute;bottom:7px;right:7px;width:30px;height:30px;border-radius:50%;background:var(--M);color:#fff;border:none;font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(232,99,44,.4);}
+.pcard-info{padding:9px 10px 11px;}
+.pcard-name{font-size:13px;font-weight:600;margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.pcard-price{font-size:14px;font-weight:700;color:var(--M);}
+/* cart bar */
+.cart-bar{position:fixed;bottom:14px;left:12px;right:12px;max-width:736px;margin:0 auto;background:var(--I);color:#fff;border-radius:14px;padding:13px 16px;display:none;align-items:center;justify-content:space-between;box-shadow:0 14px 30px -8px rgba(0,0,0,.35);z-index:40;cursor:pointer;}
+.cart-bar.show{display:flex;}
+.cart-count{background:var(--M);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.cart-right{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:5px;}
+/* product detail sheet */
+.sheet-img{aspect-ratio:1/1;background-size:cover;background-position:center;background-color:#eee;}
+.sheet-body{padding:18px;}
+.sheet-body h2{font-size:18px;margin-bottom:5px;}
+.sheet-price{font-size:18px;font-weight:700;color:var(--M);margin-bottom:12px;}
+.sheet-desc{font-size:14px;color:var(--IS);line-height:1.55;margin-bottom:16px;}
+.opt-label{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--IS);margin-bottom:8px;}
+.opt-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;}
+.opt-pill{padding:7px 13px;border:1.5px solid var(--L);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;}
+.opt-pill.sel{border-color:var(--M);background:var(--CD);color:var(--MD);}
+.qty-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.qty-btn{width:32px;height:32px;border-radius:9px;border:1.5px solid var(--L);background:#fff;font-size:16px;}
+.qty-val{font-size:15px;font-weight:700;min-width:22px;text-align:center;}
+.sticky-cta{padding:14px 18px 20px;border-top:1px solid var(--L);}
+/* checkout */
+.ck-item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--L);}
+.ck-item img{width:48px;height:48px;border-radius:9px;object-fit:cover;background:#eee;}
+.ck-name{font-size:13px;font-weight:600;}
+.ck-meta{font-size:12px;color:var(--IS);}
+.ck-qty-ctrl{margin-left:auto;display:flex;align-items:center;gap:7px;}
+.ck-qty-ctrl button{width:22px;height:22px;border-radius:6px;border:1px solid var(--L);background:#fff;font-size:12px;}
+.ck-total-row{display:flex;justify-content:space-between;padding:16px 18px;font-size:16px;font-weight:700;}
+/* setup banner */
+.setup-banner{background:linear-gradient(135deg,var(--M),var(--MD));color:#fff;padding:14px 16px;text-align:center;font-size:13.5px;}
+.setup-banner a{color:#FFE0CC;text-decoration:underline;font-weight:700;}
+/* empty state */
+.empty{text-align:center;padding:40px 20px;color:var(--IS);}
+.empty .icon{font-size:40px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+
+/* ===== AD SLOT ===== */
+.ad-slot{padding:16px;max-width:1140px;margin:0 auto;}
+.ad-card{background:#fff;border:1px dashed var(--L);border-radius:var(--R);padding:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.ad-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--IS);background:var(--CD);padding:3px 9px;border-radius:999px;flex:none;}
+.ad-card p{font-size:13px;color:var(--IS);flex:1;min-width:200px;}
+.ad-cta-btn{flex:none;padding:8px 16px;border-radius:999px;border:1.5px solid var(--MD);background:transparent;color:var(--MD);font-size:13px;font-weight:700;}
+
+/* ===== SETUP MODAL ===== */
+.modal-inner{padding:22px;}
+.modal-inner h2{font-size:18px;margin-bottom:6px;}
+.modal-inner p{font-size:13.5px;color:var(--IS);line-height:1.5;margin-bottom:16px;}
+.wallet-box{background:var(--CD);border-radius:10px;padding:10px 12px;font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:12px;color:var(--I);}
+
+/* responsive helpers */
+.hide-sm{display:none;}
+@media(min-width:640px){.hide-sm{display:inline-flex;}}
+</style>
+</head>
+<body>
+<!-- ===== CONFIG — PASTE YOUR SUPABASE KEYS HERE ===== -->
+<script>
+const SUPABASE_URL  = 'https://vuszbdmmfcrzpnznxwxr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1c3piZG1tZmNyenBuem54d3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2ODgyODQsImV4cCI6MjA5ODI2NDI4NH0.VgBqohOP0fgP6_t_g31bU023jnLZqYkuvu7ZkHMewIQ';
+const WALLET_ADDR   = '0x143702c1375893e8a7b7ebde707da9edb25b3b38';
+const CONFIGURED    = !SUPABASE_URL.startsWith('PASTE');
+</script>
+
+<div id="app">
+  <!-- pages rendered by router -->
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- AD MODAL -->
+<div class="overlay" id="adModal">
+  <div class="sheet" style="max-width:380px;">
+    <button class="close-x" onclick="closeModal('adModal')">✕</button>
+    <div class="modal-inner">
+      <h2>📢 Ou anvi fè yon donasyon pou propryetè an . Voye peman an, epi kontakte nou ak vizyal ou.</p>
+      <div class="wallet-box" id="walletDisp">0x143702c1375893e8a7b7ebde707da9edb25b3b38</div>
+      <button class="btn btn-p btn-full" onclick="copyWallet()">📋 Kopye Adrès</button>
+      <div style="margin-top:10px;text-align:center;">
+        <a href="#/contact" onclick="closeModal('adModal')" style="font-size:13px;color:var(--M);font-weight:700;">Kontakte nou apre peman</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT DETAIL MODAL -->
+<div class="overlay" id="productModal">
+  <div class="sheet" id="productSheet" style="max-width:480px;">
+    <button class="close-x" onclick="closeModal('productModal')" style="z-index:2;">✕</button>
+    <div id="productSheetContent"></div>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="overlay" id="checkoutModal">
+  <div class="sheet" style="max-width:480px;">
+    <button class="close-x" onclick="closeModal('checkoutModal')">✕</button>
+    <div id="checkoutContent"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="overlay" id="prodModal">
+  <div class="sheet" style="max-width:460px;">
+    <button class="close-x" onclick="closeModal('prodModal')">✕</button>
+    <div class="modal-inner" id="prodModalContent"></div>
+  </div>
+</div>
+
+<script>
+// =============================================
+//  SUPABASE INIT
+// =============================================
+let sb = null;
+let currentUser = null;
+let currentProfile = null;
+
+if(CONFIGURED){
+  const { createClient } = window.supabase;
+  sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+  sb.auth.onAuthStateChange(async (event, session)=>{
+    currentUser = session?.user || null;
+    if(currentUser) await fetchProfile();
+    else currentProfile = null;
+  });
+}
+
+async function fetchProfile(){
+  if(!sb||!currentUser) return null;
+  const {data} = await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  currentProfile = data;
+  return data;
+}
+
+// =============================================
+//  ROUTER
+// =============================================
+const routes = {
+  '': renderLanding,
+  'login': renderLogin,
+  'signup': renderSignup,
+  'dashboard': renderDashboard,
+  'contact': renderContact,
+  'conditions': renderConditions,
+  'confidentialite': renderConfidentialite,
+  'shop': renderShop,
+};
+
+async function route(){
+  const hash = location.hash.replace('#/','') || '';
+  const parts = hash.split('/');
+  const page = parts[0];
+  const param = parts[1];
+  const handler = routes[page] || renderLanding;
+  document.getElementById('app').innerHTML = '';
+  await handler(param);
+  window.scrollTo(0,0);
+}
+
+window.addEventListener('hashchange', route);
+window.addEventListener('load', ()=>{
+  if(CONFIGURED){
+    sb.auth.getSession().then(({data})=>{
+      currentUser = data.session?.user || null;
+      if(currentUser) fetchProfile().then(()=>route());
+      else route();
+    });
+  } else {
+    route();
+  }
+});
+
+function navigate(path){ location.hash = '#/'+path; }
+
+// =============================================
+//  SHARED HEADER
+// =============================================
+function renderHeader(opts={}){
+  const isAuth = !!currentUser;
+  return `
+    <div class="canopy"></div>
+    <header class="header">
+      <nav class="nav">
+        <a href="#/" class="logo"><span class="logo-dot"></span>BoutikLink</a>
+        <div class="nav-r">
+          ${isAuth
+            ? `<button class="btn btn-ghost btn-sm hide-sm" onclick="signOut()">Dekonekte</button>
+               <button class="btn btn-p btn-sm" onclick="navigate('dashboard')">Mon Dashboard</button>`
+            : `<button class="btn btn-ghost btn-sm hide-sm" onclick="navigate('login')">Konekte</button>
+               <button class="btn btn-p btn-sm" onclick="navigate('signup')">Kòmanse</button>`}
+        </div>
+      </nav>
+    </header>`;
+}
+
+function renderFooter(){
+  return `
+    <div class="canopy"></div>
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <div class="foot-logo"><span style="width:8px;height:8px;background:var(--M);border-radius:2px;transform:rotate(45deg);display:inline-block;"></span>BoutikLink</div>
+            <p>La passerelle entre vos réseaux sociaux et vos clients.</p>
+          </div>
+          <div>
+            <h4>Produit</h4>
+            <a href="#/signup">Créer ma boutique</a>
+            <a href="#/login">Se connecter</a>
+          </div>
+          <div>
+            <h4>Entreprise</h4>
+            <a href="#/contact">Contact &amp; FAQ</a>
+            <a href="#/conditions">Conditions</a>
+            <a href="#/confidentialite">Confidentialité</a>
+          </div>
+        </div>
+        <div class="foot-bottom">© 2026 BoutikLink. ᴋʀᴇʏᴇ ᴘᴀ ᴀɴᴅʏ sᴡɪғᴛᴛ .</div>
+      </div>
+    </footer>`;
+}
+
+// =============================================
+//  LANDING PAGE
+// =============================================
+function renderLanding(){
+  const banner = !CONFIGURED ? `<div class="setup-banner">⚙️ <strong>Mode Démonstration</strong> — Pour activer le backend, <a href="#/contact">suivez le guide de configuration Supabase</a>.</div>` : '';
+  document.getElementById('app').innerHTML = `
+    ${renderHeader()}
+    ${banner}
+    <main>
+      <div class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">🇭🇹 Panse pou vandè rezo sosyal yo</div>
+          <h1>Transfòme Rezo Sosyal Ou an yon <em>Boutik Vivan</em></h1>
+          <p class="hero-sub">Kreye yon katalòg dijital pwofesyonèl an 5 minit — san kòd, san tèt chaje. Kliyan ou yo kòmande, mesaj la jenere otomatikman sou WhatsApp.</p>
+          <div class="hero-ctas">
+            <button class="btn btn-p" onclick="navigate('signup')">Kòmanse Gratis →</button>
+            <button class="btn btn-o" onclick="navigate('shop/demo')">Wè Egzanp Boutik</button>
+          </div>
+          <div class="trust-row">
+            <span>✅ Gratis pou kòmanse</span>
+            <span>✅ San kòd</span>
+            <span>✅ Sou WhatsApp</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;justify-content:center;">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="screen-bar"></div>
+              <div class="chat-area">
+                <div class="bubble">Bonjou! Rad bleue a disponib? 👗</div>
+                <div class="bubble me">Wi! Gade katalòg mwen 👇</div>
+                <div class="unfold">
+                  <div class="unf-item"><div class="unf-swatch" style="background:linear-gradient(135deg,var(--M),var(--S));"></div><span>Rad Bleue</span><small>1 200 HTG</small></div>
+                  <div class="unf-item"><div class="unf-swatch" style="background:linear-gradient(135deg,var(--G),#8fd6ad);"></div><span>Sandal</span><small>800 HTG</small></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AD SLOT -->
+      <div class="ad-slot">
+        <div class="ad-card">
+          <span class="ad-label">Pub</span>
+          <p>Yon sèl espas anonsè — pou esperyans lan pa pèturbe. Espas sa libre kounye a.</p>
+          <button class="ad-cta-btn" onclick="openModal('adModal')">Fè pub isit →</button>
+        </div>
+      </div>
+
+      <section>
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow-sm">Fonksyonalite</span>
+            <h2>Tout sa ou bezwen, nan yon sèl lyen</h2>
+          </div>
+          <div class="feat-grid">
+            <div class="feat-card"><div class="feat-icon">🏪</div><h3>Boutik Pèsonalize</h3><p>Yon lyen inik pou mete nan bio Instagram ou ak estatik WhatsApp ou.</p></div>
+            <div class="feat-card"><div class="feat-icon">💬</div><h3>Kòmand sou WhatsApp</h3><p>Kliyan chwazi, mesaj kòmand la ekri poukont li — ou jis konfime.</p></div>
+            <div class="feat-card"><div class="feat-icon">📊</div><h3>Dashboard Klè</h3><p>Vant, pwodwi, ak kòmand vizib tousuit, depi telefòn ou.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-cream">
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow-sm">Kijan sa mache</span>
+            <h2>Senp tankou 1, 2, 3</h2>
+          </div>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div class="step-body"><h3>Kreye boutik ou</h3><p>Enskri epi pèsonalize lyen ou an kèk klik, san okenn konesans teknik.</p></div></div>
+            <div class="step"><div class="step-num">2</div><div class="step-body"><h3>Ajoute pwodwi ou</h3><p>Telechaje foto ak pri dirèkteman depi telefòn ou, tankou sou Instagram.</p></div></div>
+            <div class="step"><div class="step-num">3</div><div class="step-body"><h3>Resevwa kòmand sou WhatsApp</h3><p>Kliyan kòmande anliy, ou resevwa yon mesaj prè pou konfime — san lojisyèl konplike.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow-sm">Temwayaj</span>
+            <h2>Yo itilize l, yo renmen l</h2>
+          </div>
+          <div class="testi-track">
+            <div class="testi-card"><div class="stars">★★★★★</div><p>"Kliyan yo renmen gade katalòg la anvan yo ekri mwen. Sa ekonomize mwen dè zèdtan chak semèn."</p><div class="testi-who"><div class="avatar"></div><div><strong>Mari D.</strong><span>Rad, Pòtoprens</span></div></div></div>
+            <div class="testi-card"><div class="stars">★★★★★</div><p>"An senk minit boutik mwen te anliy. Pa bezwen voye 40 foto youn pa youn ankò."</p><div class="testi-who"><div class="avatar"></div><div><strong>Jean R.</strong><span>Akseswa, Miami</span></div></div></div>
+            <div class="testi-card"><div class="stars">★★★★★</div><p>"Lyen nan bio Instagram mwen chanje kijan mwen vann. Tout bagay pi pwofesyonèl kounye a."</p><div class="testi-who"><div class="avatar"></div><div><strong>Sophia L.</strong><span>Kosmetik, Monreyal</span></div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="cta-block">
+        <h2>Prè pou Kòmanse?</h2>
+        <p>Kreye boutik ou jodi a — li gratis, epi sa pran senk minit.</p>
+        <button class="btn btn-p" onclick="navigate('signup')">Kreye Boutik Mwen Kounye a</button>
+      </div>
+    </main>
+    ${renderFooter()}`;
+}
+
+// =============================================
+//  AUTH PAGES
+// =============================================
+function renderLogin(){
+  document.getElementById('app').innerHTML = `
+    ${renderHeader()}
+    <div class="auth-wrap">
+      <div class="logo" style="justify-content:center;margin-bottom:28px;"><span class="logo-dot"></span>BoutikLink</div>
+      <h2 style="text-align:center;margin-bottom:5px;">Konekte nan kont ou</h2>
+      <p class="sub" style="text-align:center;font-size:14px;color:var(--IS);margin-bottom:24px;">Antre detay ou pou accede dashboard ou</p>
+      <div id="authError" style="background:#FCE9E9;color:var(--DG);padding:10px 14px;border-radius:10px;font-size:13.5px;margin-bottom:14px;display:none;"></div>
+      <div class="field"><label>Imèl</label><input type="email" id="loginEmail" placeholder="andybazelais380@gmail.com"></div>
+      <div class="field"><label>Modpas</label><input type="password" id="loginPwd" placeholder="ANDYBAZELAIS#19"></div>
+      <button class="btn btn-p btn-full" id="loginBtn" onclick="doLogin()" style="margin-top:4px;">
+        ${CONFIGURED ? 'Konekte' : 'Demo — Ale Dashboard'}
+      </button>
+      <p class="auth-switch" style="margin-top:14px;">Pa gen kont? <a href="#/signup">Kreye yon kont gratis</a></p>
+    </div>`;
+}
+
+async function doLogin(){
+  if(!CONFIGURED){ navigate('dashboard'); return; }
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd   = document.getElementById('loginPwd').value;
+  const btn   = document.getElementById('loginBtn');
+  const err   = document.getElementById('authError');
+  if(!email||!pwd){ err.textContent='Ranpli tout chan yo.'; err.style.display='block'; return; }
+  btn.innerHTML='<span class="spinner"></span>';
+  btn.disabled=true;
+  const {error} = await sb.auth.signInWithPassword({email, password:pwd});
+  if(error){ err.textContent=error.message; err.style.display='block'; btn.innerHTML='Konekte'; btn.disabled=false; return; }
+  navigate('dashboard');
+}
+
+function renderSignup(){
+  document.getElementById('app').innerHTML = `
+    ${renderHeader()}
+    <div class="auth-wrap">
+      <div class="logo" style="justify-content:center;margin-bottom:28px;"><span class="logo-dot"></span>BoutikLink</div>
+      <h2 style="text-align:center;margin-bottom:5px;">Kreye Boutik Ou</h2>
+      <p class="sub" style="text-align:center;font-size:14px;color:var(--IS);margin-bottom:24px;">Gratis • Prè an 5 minit</p>
+      <div id="authError2" style="background:#FCE9E9;color:var(--DG);padding:10px 14px;border-radius:10px;font-size:13.5px;margin-bottom:14px;display:none;"></div>
+      <div class="field"><label>Non Boutik</label><input type="text" id="signupShop" placeholder="Egzanp: Andy store Boutique"></div>
+      <div class="field"><label>Lyen Boutik (slug)</label><input type="text" id="signupSlug" placeholder="mari-style" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')"></div>
+      <div class="field"><label>Nimewo WhatsApp (ak kòd peyi)</label><input type="text" id="signupWa" placeholder="50943256619"></div>
+      <div class="field"><label>Imèl</label><input type="email" id="signupEmail" placeholder="ou@exemple.com"></div>
+      <div class="field"><label>Modpas</label><input type="password" id="signupPwd" placeholder="Omwen 6 karaktè"></div>
+      <button class="btn btn-p btn-full" id="signupBtn" onclick="doSignup()" style="margin-top:4px;">
+        ${CONFIGURED ? 'Kreye Kont Mwen' : 'Demo — Ale Dashboard'}
+      </button>
+      <p class="auth-switch" style="margin-top:14px;">Deja gen kont? <a href="#/login">Konekte</a></p>
+    </div>`;
+}
+
+async function doSignup(){
+  if(!CONFIGURED){ navigate('dashboard'); return; }
+  const shop  = document.getElementById('signupShop').value.trim();
+  const slug  = document.getElementById('signupSlug').value.trim();
+  const wa    = document.getElementById('signupWa').value.trim().replace(/\D/g,'');
+  const email = document.getElementById('signupEmail').value.trim();
+  const pwd   = document.getElementById('signupPwd').value;
+  const btn   = document.getElementById('signupBtn');
+  const err   = document.getElementById('authError2');
+  if(!shop||!slug||!wa||!email||!pwd){ err.textContent='Tanpri ranpli tout chan yo.'; err.style.display='block'; return; }
+  btn.innerHTML='<span class="spinner"></span>';
+  btn.disabled=true;
+  const {data, error} = await sb.auth.signUp({email, password:pwd});
+  if(error){ err.textContent=error.message; err.style.display='block'; btn.innerHTML='Kreye Kont Mwen'; btn.disabled=false; return; }
+  await sb.from('profiles').insert({id:data.user.id, shop_name:shop, shop_slug:slug, wa_number:wa});
+  showToast('✓ Kont kreye! Byenveni sou BoutikLink😫🔥.');
+  navigate('dashboard');
+}
+
+async function signOut(){
+  if(sb) await sb.auth.signOut();
+  currentUser=null; currentProfile=null;
+  navigate('');
+}
+
+// =============================================
+//  DASHBOARD
+// =============================================
+let dashTab = 'home';
+
+async function renderDashboard(){
+  if(CONFIGURED && !currentUser){ navigate('login'); return; }
+  const profile = currentProfile || {shop_name:'Demo Boutik', shop_slug:'demo', wa_number:'50943256619'};
+
+  document.getElementById('app').innerHTML = `
+    <div style="max-width:840px;margin:0 auto;">
+      <div class="canopy"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(255,249,244,.95);position:sticky;top:0;z-index:30;border-bottom:1px solid var(--L);">
+        <a href="#/" class="logo" style="font-size:16px;"><span class="logo-dot"></span>BoutikLink</a>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--G),#8fd6ad);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:12px;">${(profile.shop_name||'?')[0].toUpperCase()}</div>
+        </div>
+      </div>
+
+      <div class="dash-wrap" id="dashContent">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;margin-top:6px;">
+          <div><h2 style="font-size:19px;font-family:'Fraunces',serif;">Bonjou, ${(profile.shop_name||'').split(' ')[0]} 👋</h2><p style="font-size:12.5px;color:var(--IS);margin-top:2px;">Apèsi boutik ou pou jodi a</p></div>
+          <a href="#/shop/${profile.shop_slug}" target="_blank" class="btn btn-ghost btn-sm">👁 Wè Boutik</a>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-icon">👀</div><div class="stat-val" id="statViews">—</div><div class="stat-label">Vizit Jodi a</div></div>
+          <div class="stat-card"><div class="stat-icon">🧾</div><div class="stat-val" id="statOrders">—</div><div class="stat-label">Kòmand</div></div>
+          <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-val" id="statProds">—</div><div class="stat-label">Pwodwi</div></div>
+        </div>
+
+        <div class="panel">
+          <h3>Aktivite Semèn nan</h3>
+          <div class="chart" id="chart"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Pwodwi Ou yo</h3>
+          <button class="add-btn" onclick="openAddProduct()">+ Ajoute Nouvo Pwodwi</button>
+          <div id="prodList"><div class="empty"><div class="icon">📦</div><p>Chaje pwodwi yo...</p></div></div>
+        </div>
+
+        <div class="panel">
+          <h3>⚙️ Paramèt Boutik</h3>
+          <div class="field"><label>Non Boutik</label><input type="text" id="setName" value="${profile.shop_name||''}"></div>
+          <div class="field"><label>Nimewo WhatsApp</label><input type="text" id="setWa" value="${profile.wa_number||''}" placeholder="50943256619"></div>
+          <div class="field"><label>Deskripsyon kout (opsyonèl)</label><textarea id="setDesc" placeholder="Egzanp: Rad ak akseswa pou fanm">${profile.description||''}</textarea></div>
+          <button class="btn btn-p" onclick="saveSettings()">💾 Anrejistre Paramèt</button>
+        </div>
+
+        <div class="share-block">
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--MD);text-transform:uppercase;margin-bottom:6px;">Lyen Boutik Ou</div>
+            <div class="share-link-text" id="shareUrl">boutiklink.com/shop/${profile.shop_slug||'demo'}</div>
+          </div>
+          <div class="share-actions">
+            <button onclick="copyShopLink()">📋 Kopye</button>
+            <button onclick="shareWa()">💬 Pataje</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <div class="bnav-item active" onclick="navigate('dashboard')"><span class="bnav-icon">🏠</span>Akèy</div>
+        <div class="bnav-item" onclick="navigate('shop/${profile.shop_slug||'demo'}')"><span class="bnav-icon">🏪</span>Boutik</div>
+        <div class="bnav-item" onclick="navigate('contact')"><span class="bnav-icon">💬</span>Sipò</div>
+        <div class="bnav-item" onclick="signOut()"><span class="bnav-icon">🚪</span>Sòti</div>
+      </nav>
+    </div>`;
+
+  await loadDashProducts();
+  renderDashChart();
+  updateStatCards();
+}
+
+async function loadDashProducts(){
+  const listEl = document.getElementById('prodList');
+  if(!listEl) return;
+  let products = [];
+
+  if(CONFIGURED && currentUser){
+    const {data} = await sb.from('products').select('*').eq('vendor_id',currentUser.id).order('created_at',{ascending:false});
+    products = data || [];
+  } else {
+    products = getDemoProducts();
+  }
+
+  document.getElementById('statProds').textContent = products.length;
+
+  if(products.length===0){
+    listEl.innerHTML='<div class="empty"><div class="icon">📦</div><p>Pa gen pwodwi pou kounye a. Ajoute premye w la!</p></div>';
+    return;
+  }
+  listEl.innerHTML = products.map((p,i)=>`
+    <div class="prow">
+      <img src="${p.img||''}" onerror="this.style.background='#eee';this.src='';" alt="${p.name}">
+      <div class="prow-info">
+        <div class="pname">${p.name}</div>
+        <div class="pprice">${Number(p.price).toLocaleString()} HTG</div>
+      </div>
+      <span class="badge ${p.stock>0?'badge-ok':'badge-low'}">${p.stock>0?'✓ Stock':'⚠ Fini'}</span>
+      <div class="prow-actions">
+        <button onclick="editProduct('${p.id}')" title="Modifye">✏️</button>
+        <button onclick="deleteProduct('${p.id}')" title="Efase">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function getDemoProducts(){
+  const raw = localStorage.getItem('bl_demo_products');
+  if(raw) try{ return JSON.parse(raw); }catch(e){}
+  return [
+    {id:'d1',name:'Rad Maxi Twopikal',price:1800,stock:6,img:'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=200'},
+    {id:'d2',name:'Sapat Tresè Kwit',price:950,stock:0,img:'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=200'},
+  ];
+}
+function saveDemoProducts(products){ localStorage.setItem('bl_demo_products', JSON.stringify(products)); }
+
+function updateStatCards(){
+  if(!document.getElementById('statViews')) return;
+  document.getElementById('statViews').textContent = Math.floor(Math.random()*200+50);
+  document.getElementById('statOrders').textContent = Math.floor(Math.random()*20+2);
+}
+
+function renderDashChart(){
+  const chartEl = document.getElementById('chart');
+  if(!chartEl) return;
+  const days=['Lin','Mar','Mèk','Jdi','Van','Sam','Dim'];
+  const vals=days.map(()=>Math.floor(Math.random()*80+20));
+  const max=Math.max(...vals);
+  chartEl.innerHTML=days.map((d,i)=>`<div class="bar-col"><div class="bar" style="height:${vals[i]/max*90}px;"></div><div class="bar-day">${d}</div></div>`).join('');
+}
+
+async function saveSettings(){
+  const name = document.getElementById('setName').value.trim();
+  const wa   = document.getElementById('setWa').value.trim().replace(/\D/g,'');
+  const desc = document.getElementById('setDesc').value.trim();
+  if(!name||!wa){ showToast('Non ak nimewo obligatwa.'); return; }
+  if(CONFIGURED && currentUser){
+    await sb.from('profiles').update({shop_name:name,wa_number:wa,description:desc}).eq('id',currentUser.id);
+    await fetchProfile();
+  }
+  showToast('✓ Paramèt Anrejistre!');
+}
+
+function copyShopLink(){
+  const url = document.getElementById('shareUrl')?.textContent || '';
+  navigator.clipboard?.writeText('https://'+url);
+  showToast('Lyen kopye!');
+}
+function shareWa(){
+  const url = document.getElementById('shareUrl')?.textContent || '';
+  window.open(`https://wa.me/?text=${encodeURIComponent('Gade boutik mwen: https://'+url)}`,'_blank');
+}
+
+// Add / Edit product modal
+let editingProductId = null;
+let pendingImgData   = null;
+
+function openAddProduct(){ editingProductId=null; pendingImgData=null; renderProdModal(null); openModal('prodModal'); }
+async function editProduct(id){
+  editingProductId = id;
+  let prod = null;
+  if(CONFIGURED && currentUser){
+    const {data} = await sb.from('products').select('*').eq('id',id).single();
+    prod = data;
+  } else {
+    prod = getDemoProducts().find(p=>p.id===id);
+  }
+  renderProdModal(prod);
+  openModal('prodModal');
+}
+
+function renderProdModal(prod){
+  document.getElementById('prodModalContent').innerHTML=`
+    <h2 style="margin-bottom:14px;">${prod?'Modifye Pwodwi':'Ajoute Nouvo Pwodwi'}</h2>
+    <div class="upload-box" id="uploadBox" onclick="document.getElementById('imgFile').click()">
+      ${prod?.img ? `<img src="${prod.img}" style="max-height:120px;border-radius:8px;margin:0 auto 8px;">` : '📷'}
+      <div>Klike pou ajoute foto</div>
+    </div>
+    <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="handleImgUpload(event)">
+    <img id="imgPreview" style="display:none;width:100%;border-radius:10px;margin:10px 0;max-height:160px;object-fit:cover;">
+    <div class="field" style="margin-top:12px;"><label>Non Pwodwi *</label><input type="text" id="pName" value="${prod?.name||''}"></div>
+    <div class="field"><label>Pri (HTG) *</label><input type="number" id="pPrice" value="${prod?.price||''}"></div>
+    <div class="field"><label>Stock</label><input type="number" id="pStock" value="${prod?.stock||0}" min="0"></div>
+    <div class="field"><label>Deskripsyon</label><textarea id="pDesc">${prod?.description||''}</textarea></div>
+    <button class="btn btn-p btn-full" onclick="saveProd('${prod?.img||''}')">${prod?'Anrejistre Chanjman':'Pibliye Pwodwi'}</button>`;
+}
+
+function handleImgUpload(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    pendingImgData = ev.target.result;
+    const prev = document.getElementById('imgPreview');
+    prev.src = pendingImgData; prev.style.display='block';
+    document.getElementById('uploadBox').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProd(oldImg){
+  const name  = document.getElementById('pName').value.trim();
+  const price = parseFloat(document.getElementById('pPrice').value)||0;
+  const stock = parseInt(document.getElementById('pStock').value)||0;
+  const desc  = document.getElementById('pDesc').value.trim();
+  if(!name||!price){ showToast('Non ak pri obligatwa.'); return; }
+  const img = pendingImgData || oldImg || '';
+  const btn = document.querySelector('#prodModalContent .btn-p');
+  btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+
+  if(CONFIGURED && currentUser){
+    if(editingProductId){
+      await sb.from('products').update({name,price,stock,description:desc,img}).eq('id',editingProductId);
+    } else {
+      await sb.from('products').insert({vendor_id:currentUser.id,name,price,stock,description:desc,img});
+    }
+  } else {
+    // demo localStorage
+    let products = getDemoProducts();
+    if(editingProductId){
+      products = products.map(p=>p.id===editingProductId?{...p,name,price,stock,description:desc,img}:p);
+    } else {
+      products.unshift({id:'d'+Date.now(),name,price,stock,description:desc,img});
+    }
+    saveDemoProducts(products);
+  }
+  closeModal('prodModal');
+  showToast('✓ Pwodwi Anrejistre!');
+  await loadDashProducts();
+}
+
+async function deleteProduct(id){
+  if(!confirm('Efase pwodwi sa?')) return;
+  if(CONFIGURED && currentUser){
+    await sb.from('products').delete().eq('id',id);
+  } else {
+    saveDemoProducts(getDemoProducts().filter(p=>p.id!==id));
+  }
+  showToast('Pwodwi efase.');
+  await loadDashProducts();
+}
+
+// =============================================
+//  PUBLIC SHOP PAGE
+// =============================================
+let shopProducts=[], shopCart=[], shopProfile={};
+let curProduct=null, curQty=1, curSize=null;
+
+async function renderShop(slug){
+  const isDemo = slug==='demo' || !CONFIGURED;
+  if(isDemo){
+    shopProfile = {shop_name:'Mari Style Boutique', wa_number:'50943256619', description:'Rad ak Akseswa pou Fanm · Pòtoprens 🇭🇹', shop_slug:'demo'};
+    shopProducts = [
+      {id:'s1',name:'Rad Maxi Flè Twopikal',price:1800,stock:6,img:'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500',description:'Rad maxi lejè, pafè pou ete.',category:'rad',sizes:['S','M','L']},
+      {id:'s2',name:'Sapat Tresè Kwit',price:950,stock:4,img:'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=500',description:'Sapat kwit natirèl.',category:'sapat',sizes:['37','38','39','40']},
+      {id:'s3',name:'Blouz Soyeux Krèm',price:1350,stock:9,img:'https://images.unsplash.com/photo-1581044777550-4cfa60707c03?w=500',description:'Blouz elegant an soyeux.',category:'rad',sizes:['S','M','L']},
+      {id:'s4',name:'Bag Tisi Atizanal',price:1100,stock:3,img:'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=500',description:'Bag fèt alamen.',category:'bag',sizes:[]},
+      {id:'s5',name:'Pantalon Tay Wo',price:1600,stock:7,img:'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500',description:'Pantalon tay wo.',category:'rad',sizes:['S','M','L','XL']},
+      {id:'s6',name:'Sandal Talon Mango',price:1450,stock:0,img:'https://images.unsplash.com/photo-1518049362265-d5b2a6467637?w=500',description:'Sandal talon koulè mango.',category:'sapat',sizes:['37','38','39','40']},
+    ];
+  } else {
+    const {data:prof} = await sb.from('profiles').select('*').eq('shop_slug',slug).single();
+    if(!prof){ document.getElementById('app').innerHTML='<div class="empty" style="padding:80px 20px;"><div class="icon">😕</div><p>Boutik sa pa jwenn.</p><br><a href="#/" class="btn btn-p btn-sm">Retounen Akèy</a></div>'; return; }
+    shopProfile = prof;
+    const {data:prods} = await sb.from('products').select('*').eq('vendor_id',prof.id).order('created_at',{ascending:false});
+    shopProducts = (prods||[]).map(p=>({...p,sizes:[],category:'all'}));
+  }
+  shopCart=[];
+  renderShopPage();
+}
+
+function renderShopPage(filter='all'){
+  const filtered = filter==='all' ? shopProducts : shopProducts.filter(p=>p.category===filter||p.category?.includes(filter));
+  const cats = [...new Set(shopProducts.map(p=>p.category).filter(Boolean))];
+
+  document.getElementById('app').innerHTML = `
+    <div class="canopy"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:rgba(255,249,244,.95);position:sticky;top:0;z-index:30;border-bottom:1px solid var(--L);">
+      <a href="#/" style="font-size:13px;font-weight:600;color:var(--IS);">← BoutikLink</a>
+      <span style="font-size:11.5px;color:var(--IS);">Powered by<b style="color:var(--M);">ANDY-SWIFTT</b></span>
+    </div>
+
+    <div class="shop-cover"></div>
+    <div class="shop-header">
+      <div class="shop-av">${(shopProfile.shop_name||'B')[0].toUpperCase()}</div>
+      <h1>${shopProfile.shop_name||'Boutik'} <span style="color:var(--G);font-size:14px;">✓</span></h1>
+      <p>${shopProfile.description||''}</p>
+    </div>
+
+    <div class="shop-chips">
+      <div class="chip active" onclick="filterShop(this,'all')">Tout</div>
+      ${cats.map(c=>`<div class="chip" onclick="filterShop(this,'${c}')">${c.charAt(0).toUpperCase()+c.slice(1)}</div>`).join('')}
+    </div>
+
+    <div class="prod-grid" id="shopGrid">
+      ${filtered.length===0
+        ? '<div class="empty" style="grid-column:span 2;"><div class="icon">📦</div><p>Pa gen pwodwi nan kategori sa.</p></div>'
+        : filtered.map(p=>`
+          <div class="pcard" onclick="openProduct('${p.id}')">
+            <div class="pcard-img" style="background-image:url('${p.img||''}');background-color:#eee;">
+              <button class="quick-plus" onclick="event.stopPropagation();quickAdd('${p.id}')">+</button>
+            </div>
+            <div class="pcard-info">
+              <div class="pcard-name">${p.name}</div>
+              <div class="pcard-price">${Number(p.price).toLocaleString()} HTG</div>
+            </div>
+          </div>`).join('')}
+    </div>
+
+    <div class="cart-bar" id="cartBar" onclick="openCheckout()">
+      <div style="display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;"><span class="cart-count" id="cartCount">0</span> Atik</div>
+      <div class="cart-right"><span id="cartTotal">0 HTG</span> →</div>
+    </div>`;
+}
+
+function filterShop(el, cat){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const filtered = cat==='all' ? shopProducts : shopProducts.filter(p=>p.category===cat||p.category?.includes(cat));
+  const grid = document.getElementById('shopGrid');
+  if(!grid) return;
+  grid.innerHTML = filtered.length===0
+    ? '<div class="empty" style="grid-column:span 2;"><div class="icon">📦</div><p>Pa gen pwodwi nan kategori sa.</p></div>'
+    : filtered.map(p=>`
+      <div class="pcard" onclick="openProduct('${p.id}')">
+        <div class="pcard-img" style="background-image:url('${p.img||''}');background-color:#eee;">
+          <button class="quick-plus" onclick="event.stopPropagation();quickAdd('${p.id}')">+</button>
+        </div>
+        <div class="pcard-info">
+          <div class="pcard-name">${p.name}</div>
+          <div class="pcard-price">${Number(p.price).toLocaleString()} HTG</div>
+        </div>
+      </div>`).join('');
+}
+
+function openProduct(id){
+  curProduct = shopProducts.find(p=>p.id===id);
+  if(!curProduct) return;
+  curQty=1; curSize=curProduct.sizes?.[0]||null;
+  document.getElementById('productSheetContent').innerHTML = `
+    <div class="sheet-img" style="background-image:url('${curProduct.img||''}');background-color:#eee;"></div>
+    <div class="sheet-body">
+      <h2>${curProduct.name}</h2>
+      <div class="sheet-price">${Number(curProduct.price).toLocaleString()} HTG</div>
+      <p class="sheet-desc">${curProduct.description||''}</p>
+      ${curProduct.sizes?.length ? `<div class="opt-label">Sayz</div><div class="opt-row">${curProduct.sizes.map((s,i)=>`<div class="opt-pill ${i===0?'sel':''}" onclick="pickSize(this,'${s}')">${s}</div>`).join('')}</div>` : ''}
+      <div class="opt-label">Kantite</div>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="adjQty(-1)">−</button>
+        <span class="qty-val" id="qv">1</span>
+        <button class="qty-btn" onclick="adjQty(1)">+</button>
+      </div>
+    </div>
+    <div class="sticky-cta">
+      <button class="btn btn-p btn-full" onclick="addToCart()">Ajoute nan Panye — ${Number(curProduct.price).toLocaleString()} HTG</button>
+    </div>`;
+  openModal('productModal');
+}
+
+function pickSize(el,s){ document.querySelectorAll('.opt-pill').forEach(p=>p.classList.remove('sel')); el.classList.add('sel'); curSize=s; }
+function adjQty(d){ curQty=Math.max(1,curQty+d); document.getElementById('qv').textContent=curQty; }
+function addToCart(){
+  const ex = shopCart.find(c=>c.id===curProduct.id&&c.size===curSize);
+  if(ex) ex.qty+=curQty; else shopCart.push({id:curProduct.id,qty:curQty,size:curSize});
+  closeModal('productModal');
+  updateCartBar();
+}
+function quickAdd(id){
+  const p=shopProducts.find(x=>x.id===id);
+  const ex=shopCart.find(c=>c.id===id&&c.size===(p.sizes?.[0]||null));
+  if(ex) ex.qty++; else shopCart.push({id,qty:1,size:p.sizes?.[0]||null});
+  updateCartBar();
+}
+function updateCartBar(){
+  const total=shopCart.reduce((s,c)=>{const p=shopProducts.find(x=>x.id===c.id);return s+Number(p.price)*c.qty;},0);
+  const count=shopCart.reduce((s,c)=>s+c.qty,0);
+  const bar=document.getElementById('cartBar');
+  if(!bar) return;
+  if(count>0){ bar.classList.add('show'); document.getElementById('cartCount').textContent=count; document.getElementById('cartTotal').textContent=total.toLocaleString()+' HTG'; }
+  else bar.classList.remove('show');
+}
+
+function openCheckout(){
+  const total=shopCart.reduce((s,c)=>{const p=shopProducts.find(x=>x.id===c.id);return s+Number(p.price)*c.qty;},0);
+  document.getElementById('checkoutContent').innerHTML=`
+    <div style="padding:20px 18px 6px;"><h2 style="font-size:18px;font-family:'Fraunces',serif;">🛒 Panye Ou</h2></div>
+    <div style="padding:0 18px;" id="ckList">
+      ${shopCart.map((c,i)=>{const p=shopProducts.find(x=>x.id===c.id);return `
+        <div class="ck-item">
+          <img src="${p.img||''}" onerror="this.style.background='#eee';this.src='';">
+          <div><div class="ck-name">${p.name}</div><div class="ck-meta">${c.size?'Sayz '+c.size+' · ':''}${Number(p.price).toLocaleString()} HTG</div></div>
+          <div class="ck-qty-ctrl">
+            <button onclick="adjCart(${i},-1)">−</button>
+            <span>${c.qty}</span>
+            <button onclick="adjCart(${i},1)">+</button>
+          </div>
+        </div>`;}).join('')}
+    </div>
+    <div class="ck-total-row"><span>Total</span><span id="ckTotal">${total.toLocaleString()} HTG</span></div>
+    <div style="padding:0 18px;">
+      <div class="field"><label>Non Konplè *</label><input type="text" id="ckName" placeholder="Andy Swiftt"></div>
+      <div class="field"><label>Adrès Livrezon (opsyonèl)</label><input type="text" id="ckAddr" placeholder="Jacmel"></div>
+      <div class="field"><label>Nòt espesyal (opsyonèl)</label><textarea id="ckNote" rows="2"></textarea></div>
+    </div>
+    <div style="padding:12px 18px 24px;">
+      <button class="btn btn-g btn-full" onclick="sendWhatsApp()">💬 Voye Kòmand sou WhatsApp</button>
+    </div>`;
+  openModal('checkoutModal');
+}
+
+function adjCart(i,d){
+  shopCart[i].qty+=d;
+  if(shopCart[i].qty<=0) shopCart.splice(i,1);
+  updateCartBar();
+  if(shopCart.length===0){ closeModal('checkoutModal'); return; }
+  openCheckout();
+}
+
+function sendWhatsApp(){
+  const name=document.getElementById('ckName')?.value.trim();
+  if(!name){ showToast('Tanpri antre non ou.'); return; }
+  const addr=document.getElementById('ckAddr')?.value.trim();
+  const note=document.getElementById('ckNote')?.value.trim();
+  let total=0;
+  const lines=shopCart.map(c=>{const p=shopProducts.find(x=>x.id===c.id);total+=Number(p.price)*c.qty;return `${c.qty}x ${p.name}${c.size?' ('+c.size+')':''} — ${(Number(p.price)*c.qty).toLocaleString()} HTG`;});
+  let msg=`Bonjou ${shopProfile.shop_name||'Boutik'} 👋\nMwen ta renmen kòmande:\n${lines.join('\n')}\n\nTotal: ${total.toLocaleString()} HTG\nNon: ${name}`;
+  if(addr) msg+=`\nAdrès: ${addr}`;
+  if(note) msg+=`\nNòt: ${note}`;
+  window.open(`https://wa.me/${shopProfile.wa_number||'50943256619'}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// =============================================
+//  CONTACT / LEGAL PAGES
+// =============================================
+function renderContact(){
+  document.getElementById('app').innerHTML=`
+    ${renderHeader()}
+    <div class="wrap-sm" style="padding-top:36px;padding-bottom:80px;">
+      <h1 style="font-size:26px;margin-bottom:6px;">Kontak ak Èd</h1>
+      <p style="font-size:14px;color:var(--IS);margin-bottom:28px;">Yon kesyon oswa yon pwoblèm? Nou la.</p>
+      <div style="display:flex;gap:12px;margin-bottom:30px;flex-wrap:wrap;">
+        <div class="card" style="flex:1;min-width:180px;text-align:center;">
+          <div style="font-size:24px;margin-bottom:8px;">💬</div>
+          <h3 style="font-size:14.5px;margin-bottom:4px;">WhatsApp Sipò</h3>
+          <p style="font-size:12.5px;color:var(--IS);margin-bottom:10px;">Repons rapid</p>
+          <a href="https://wa.me/50943256619?text=Bonjou%20BoutikLink%2C%20mwen%20gen%20yon%20kesyon" target="_blank" class="btn btn-ghost btn-sm">Ekri nou kounya</a>
+        </div>
+        <div class="card" style="flex:1;min-width:180px;text-align:center;">
+          <div style="font-size:24px;margin-bottom:8px;">✉️</div>
+          <h3 style="font-size:14.5px;margin-bottom:4px;">Imèl</h3>
+          <p style="font-size:12.5px;color:var(--IS);margin-bottom:10px;">Pou demand detaye</p>
+          <a href="andybazelais380@gmail.com" class="btn btn-ghost btn-sm">Ekri imèl</a>
+        </div>
+      </div>
+      <h2 style="font-size:18px;margin-bottom:14px;">FAQ</h2>
+      <details style="background:#fff;border:1px solid var(--L);border-radius:12px;padding:14px;margin-bottom:10px;"><summary style="font-size:14px;font-weight:600;cursor:pointer;">Èske li gratis?</summary><p style="font-size:13.5px;color:var(--IS);margin-top:10px;">Wi, plan debaz gratis. Plan Premyòm ap disponib pita pou plis fonksyonalite.</p></details>
+      <details style="background:#fff;border:1px solid var(--L);border-radius:12px;padding:14px;margin-bottom:10px;"><summary style="font-size:14px;font-weight:600;cursor:pointer;">Kòman kliyan an peye?</summary><p style="font-size:13.5px;color:var(--IS);margin-top:10px;">BoutikLink pa trete peman. Kliyan ak machann antann yo dirèkteman sou WhatsApp.</p></details>
+      <details style="background:#fff;border:1px solid var(--L);border-radius:12px;padding:14px;margin-bottom:10px;"><summary style="font-size:14px;font-weight:600;cursor:pointer;">Kòman m ka chanje nimewo WhatsApp mwen?</summary><p style="font-size:13.5px;color:var(--IS);margin-top:10px;">Ale nan Dashboard → Paramèt Boutik → chanje nimewo a → Anrejistre.</p></details>
+      <details style="background:#fff;border:1px solid var(--L);border-radius:12px;padding:14px;"><summary style="font-size:14px;font-weight:600;cursor:pointer;">Kòman m konfigire Supabase?</summary><p style="font-size:13.5px;color:var(--IS);margin-top:10px;">1) Kreye kont gratis sou supabase.com → 2) Kreye yon nouvo projet → 3) Ale Settings → API → Kopye URL ak anon key → 4) Kole yo nan tèt fichye app.html a kote 'PASTE_YOUR_...'</p></details>
+    </div>
+    ${renderFooter()}`;
+}
+
+function renderConditions(){
+  document.getElementById('app').innerHTML=`
+    ${renderHeader()}
+    <div class="wrap-sm" style="padding-top:36px;padding-bottom:80px;">
+      <a href="#/" style="font-size:13px;font-weight:600;color:var(--IS);display:block;margin-bottom:20px;">← BoutikLink</a>
+      <h1 style="font-size:24px;margin-bottom:6px;">Kondisyon Itilizasyon</h1>
+      <p style="font-size:12px;color:var(--IS);margin-bottom:24px;">Dènye mizajou: 30 jen 2026</p>
+      <p style="font-size:14.5px;line-height:1.65;color:#3a3f4a;margin-bottom:16px;">Lè w itilize BoutikLink, ou aksepte kondisyon sa yo.</p>
+      <h2 style="font-size:16px;margin:24px 0 8px;">1. Kisa BoutikLink ye</h2><p style="font-size:14px;color:#3a3f4a;line-height:1.6;">BoutikLink se yon zouti ki pèmèt machann kreye katalòg dijital epi kliyan voye kòmand sou WhatsApp.</p>
+      <h2 style="font-size:16px;margin:24px 0 8px;">2. Responsablite</h2><p style="font-size:14px;color:#3a3f4a;line-height:1.6;">BoutikLink pa trete peman, pa garanti kalite pwodwi, epi pa patisipe nan livrezon. Tout antant fèt dirèkteman ant kliyan ak machann.</p>
+      <h2 style="font-size:16px;margin:24px 0 8px;">3. Kont</h2><p style="font-size:14px;color:#3a3f4a;line-height:1.6;">Chak machann responsab pou sekirite kont li. BoutikLink ka sispann yon kont si li itilize pou aktivite ilegal.</p>
+    </div>
+    ${renderFooter()}`;
+}
+
+function renderConfidentialite(){
+  document.getElementById('app').innerHTML=`
+    ${renderHeader()}
+    <div class="wrap-sm" style="padding-top:36px;padding-bottom:80px;">
+      <a href="#/" style="font-size:13px;font-weight:600;color:var(--IS);display:block;margin-bottom:20px;">← BoutikLink</a>
+      <h1 style="font-size:24px;margin-bottom:6px;">Politik Konfidansyalite</h1>
+      <p style="font-size:12px;color:var(--IS);margin-bottom:24px;">Dènye mizajou: 30 jen 2026</p>
+      <h2 style="font-size:16px;margin:24px 0 8px;">Done nou kolekte</h2><p style="font-size:14px;color:#3a3f4a;line-height:1.6;">Non boutik, nimewo WhatsApp, foto pwodwi, epi non/adrès kliyan lè yo kòmande. Nou pa vann done pèsonèl bay twazyèm pati.</p>
+      <h2 style="font-size:16px;margin:24px 0 8px;">WhatsApp</h2><p style="font-size:14px;color:#3a3f4a;line-height:1.6;">Mesaj kòmand yo pase dirèkteman nan app WhatsApp kliyan an. BoutikLink pa gen aksè ak kontni mesaj sa yo.</p>
+      <h2 style="font-size:16px;margin:24px 0 8px;">Dwa ou</h2><p style="font-size:14px;color:#3a3f4a;line-height:1.6;">Ou ka mande efase done ou nenpòt lè via <a href="#/contact" style="color:var(--M);">paj Kontak la</a>.</p>
+    </div>
+    ${renderFooter()}`;
+}
+
+// =============================================
+//  MODAL HELPERS
+// =============================================
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+document.addEventListener('click', e=>{
+  ['adModal','productModal','checkoutModal','prodModal'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&e.target===el) closeModal(id);
+  });
+});
+
+function copyWallet(){
+  navigator.clipboard?.writeText(WALLET_ADDR);
+  showToast('Adrès kopye!');
+}
+
+// =============================================
+//  TOAST
+// =============================================
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+</script>
+
+<!-- SQL SCHEMA — Supabase Setup (copy-paste in Supabase SQL Editor)
+=====================================================================
+-- Run this SQL in your Supabase project → SQL Editor
+
+create table if not exists profiles (
+  id uuid references auth.users on delete cascade primary key,
+  shop_name text,
+  shop_slug text unique,
+  wa_number text,
+  description text,
+  created_at timestamptz default now()
+);
+
+create table if not exists products (
+  id uuid default gen_random_uuid() primary key,
+  vendor_id uuid references profiles(id) on delete cascade,
+  name text not null,
+  price numeric not null,
+  stock int default 0,
+  img text,
+  description text,
+  category text,
+  created_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+alter table products enable row level security;
+
+create policy "Public profiles readable" on profiles for select using (true);
+create policy "Own profile editable" on profiles for all using (auth.uid() = id);
+create policy "Public products readable" on products for select using (true);
+create policy "Own products editable" on products for all using (auth.uid() = vendor_id);
+=====================================================================
+-->
+</body>
+</html>
